@@ -1,0 +1,54 @@
+from datetime import datetime
+import psycopg2
+import requests
+
+from db_credentials import DB_CREDENTIALS
+from src.db_models.stocks import StockData, StockActions
+
+
+def get_json_from_api(month: str, symbol: str) -> dict:
+    url = "https://alpha-vantage.p.rapidapi.com/query"
+    querystring = {"symbol": symbol, "function": "TIME_SERIES_INTRADAY", "interval": "60min", "outputsize": "full",
+                   "month": month, "datatype": "json"}
+    headers = {
+        "X-RapidAPI-Key": "f12396277amsheb103e97f68e5f2p111cddjsn187c6ee9e05e",
+        "X-RapidAPI-Host": "alpha-vantage.p.rapidapi.com"
+    }
+    try:
+        api_response = requests.get(url, headers=headers, params=querystring)
+    except ValueError as err:
+        print(f"Could not get a response from api: {err}")
+    return api_response.json()
+
+
+def update_stocks_from_json(json):
+    stocks_list = []
+    symbol = json['Meta Data']['2. Symbol']
+    timestamps = [timestamp for timestamp in json['Time Series (60min)'].keys()]
+    for timestamp in timestamps:
+        new_stock = StockData(
+            symbol=symbol,
+            timestamp=timestamp,
+            open=json['Time Series (60min)'][timestamp]['1. open'],
+            high=json['Time Series (60min)'][timestamp]['2. high'],
+            low=json['Time Series (60min)'][timestamp]['3. low'],
+            close=json['Time Series (60min)'][timestamp]['4. close'],
+            volume=json['Time Series (60min)'][timestamp]['5. volume'],
+        )
+        stocks_list.append(new_stock)
+    with psycopg2.connect(**DB_CREDENTIALS) as connection:
+        StockActions(connection=connection).create(stocks_list)
+
+
+if __name__ == '__main__':
+    months_list = [f"{year:04d}-{month:02d}" for month in range(1, 13) for year in range(2020, 2024)]
+    symbols_list=["AAPL", "AMZN", "GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
+    count = 0
+    for month in months_list:
+        json = get_json_from_api(month=month, symbol=symbols_list[0])
+        update_stocks_from_json(json)
+        count += 1
+        print(f"Done with {symbols_list[0]}:{month}")
+        print(f"Months remaining: {len(months_list) - count}")
+
+# symbols done: [MSFT,]
