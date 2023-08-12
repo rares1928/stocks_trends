@@ -1,6 +1,7 @@
 from datetime import datetime
 import psycopg2
 import requests
+import time
 
 from db_credentials import DB_CREDENTIALS
 from src.db_models.stocks import StockData, StockActions
@@ -18,6 +19,15 @@ def get_json_from_api(month: str, symbol: str) -> dict:
         api_response = requests.get(url, headers=headers, params=querystring)
     except ValueError as err:
         print(f"Could not get a response from api: {err}")
+    try:
+        api_response.json()['Meta Data']['2. Symbol']
+    except KeyError as err:
+        print(f"Could not find ['Meta Data']['2. Symbol'] for {symbol}:{month}, the response is: {api_response}.\n"
+              f"The headers are: {api_response.headers}\n"
+              f"Retrying...")
+        time.sleep(60)
+        return get_json_from_api(month=month, symbol=symbol)
+    print(f"Available requests: {api_response.headers['X-RateLimit-Requests-Remaining']}")
     return api_response.json()
 
 
@@ -41,8 +51,8 @@ def update_stocks_from_json(json):
 
 
 if __name__ == '__main__':
-    months_list = [f"{year:04d}-{month:02d}" for month in range(1, 13) for year in range(2020, 2024)]
-    symbols_list=["AAPL", "AMZN", "GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
+    months_list = [f"{year:04d}-{month:02d}" for year in range(2020, 2024) for month in range(1, 13)]
+    symbols_list = ["GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
     symbol_count = 0
     for symbol in symbols_list:
         symbol_count += 1
@@ -54,4 +64,5 @@ if __name__ == '__main__':
             print(f"Done with {symbol}:{month}")
             print(f"Months remaining: {len(months_list) - count}, stocks remaining: {len(symbols_list) - symbol_count}")
 
-# symbols done: [MSFT,]
+# symbols done: [MSFT,"AAPL", "AMZN",]
+# symbols with problems: ["GOOGL"]
