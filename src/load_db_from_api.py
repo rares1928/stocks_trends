@@ -52,7 +52,7 @@ def update_stocks_from_json(json):
 
 if __name__ == '__main__':
     months_list = [f"{year:04d}-{month:02d}" for year in range(2020, 2024) for month in range(1, 13)]
-    symbols_list = ["GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
+    symbols_list = ["V", "JNJ"]
     symbol_count = 0
     for symbol in symbols_list:
         symbol_count += 1
@@ -64,5 +64,5 @@ if __name__ == '__main__':
             print(f"Done with {symbol}:{month}")
             print(f"Months remaining: {len(months_list) - count}, stocks remaining: {len(symbols_list) - symbol_count}")
 
-# symbols done: [MSFT,"AAPL", "AMZN",]
-# symbols with problems: ["GOOGL"]
+# symbols done: [MSFT,"AAPL", "AMZN","GOOGL", "META", "TSLA", "BRK-B", "JPM",]
+# symbols with problems: []
