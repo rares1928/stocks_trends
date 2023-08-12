@@ -8,13 +8,8 @@ from src.db_models.stocks import StockData, StockActions
 
 
 def get_json_from_api(month: str, symbol: str) -> dict:
-    url = "https://alpha-vantage.p.rapidapi.com/query"
-    querystring = {"symbol": symbol, "function": "TIME_SERIES_INTRADAY", "interval": "60min", "outputsize": "full",
-                   "month": month, "datatype": "json"}
-    headers = {
-        "X-RapidAPI-Key": "f12396277amsheb103e97f68e5f2p111cddjsn187c6ee9e05e",
-        "X-RapidAPI-Host": "alpha-vantage.p.rapidapi.com"
-    }
+    start_time = time.perf_counter()
+    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&month={month}&outputsize=full&interval=60min&apikey=ZFFDFON6BSFJQ11P"
     try:
         api_response = requests.get(url, headers=headers, params=querystring)
     except ValueError as err:
@@ -27,11 +22,13 @@ def get_json_from_api(month: str, symbol: str) -> dict:
               f"Retrying...")
         time.sleep(60)
         return get_json_from_api(month=month, symbol=symbol)
-    print(f"Available requests: {api_response.headers['X-RateLimit-Requests-Remaining']}")
+    end_time = time.perf_counter()
+    print(f"Processed the api request in: {end_time-start_time}")
     return api_response.json()
 
 
 def update_stocks_from_json(json):
+    start_time = time.perf_counter()
     stocks_list = []
     symbol = json['Meta Data']['2. Symbol']
     timestamps = [timestamp for timestamp in json['Time Series (60min)'].keys()]
@@ -48,11 +45,13 @@ def update_stocks_from_json(json):
         stocks_list.append(new_stock)
     with psycopg2.connect(**DB_CREDENTIALS) as connection:
         StockActions(connection=connection).create(stocks_list)
+    end_time = time.perf_counter()
+    print(f"Updated the database for {symbol} in: {end_time-start_time}")
 
 
 if __name__ == '__main__':
     months_list = [f"{year:04d}-{month:02d}" for year in range(2020, 2024) for month in range(1, 13)]
-    symbols_list = ["V", "JNJ"]
+    symbols_list = ["MSFT","AAPL", "AMZN","GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
     symbol_count = 0
     for symbol in symbols_list:
         symbol_count += 1

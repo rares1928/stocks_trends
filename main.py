@@ -7,17 +7,10 @@ from src.db_models.stocks import StockData, StockActions
 
 
 if __name__ == '__main__':
-    print("hello")
-    url = "https://alpha-vantage.p.rapidapi.com/query"
-    querystring = {"symbol": "GOOGL", "function": "TIME_SERIES_INTRADAY", "interval": "60min", "outputsize": "full",
-                   "month": "2020-07", "datatype": "json"}
-    headers = {
-        "X-RapidAPI-Key": "f12396277amsheb103e97f68e5f2p111cddjsn187c6ee9e05e",
-        "X-RapidAPI-Host": "alpha-vantage.p.rapidapi.com"
-    }
-    try:
-        api_response = requests.get(url, headers=headers, params=querystring)
-    except ValueError as err:
-        print(f"Could not get a response from api: {err}")
+    # replace the "demo" apikey below with your own key from https://www.alphavantage.co/support/#api-key
+    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&outputsize=full&interval=60min&apikey=ZFFDFON6BSFJQ11P"
+    api_response = requests.get(url)
+
     print(api_response)
     print(api_response.headers)
+    print(api_response.json())
