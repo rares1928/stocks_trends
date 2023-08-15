@@ -1,67 +1,44 @@
-from datetime import datetime
 import psycopg2
-import requests
 import time
+import yfinance
 
 from db_credentials import DB_CREDENTIALS
-from src.db_models.stocks import StockData, StockActions
 
 
-def get_json_from_api(month: str, symbol: str) -> dict:
+def get_dataframe_from_api(symbol: str):
     start_time = time.perf_counter()
-    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&month={month}&outputsize=full&interval=60min&apikey=ZFFDFON6BSFJQ11P"
-    try:
-        api_response = requests.get(url, headers=headers, params=querystring)
-    except ValueError as err:
-        print(f"Could not get a response from api: {err}")
-    try:
-        api_response.json()['Meta Data']['2. Symbol']
-    except KeyError as err:
-        print(f"Could not find ['Meta Data']['2. Symbol'] for {symbol}:{month}, the response is: {api_response}.\n"
-              f"The headers are: {api_response.headers}\n"
-              f"Retrying...")
-        time.sleep(60)
-        return get_json_from_api(month=month, symbol=symbol)
+    historical_data = yfinance.Ticker(symbol).history(period='5y')
+    # Filter and reorder columns
+    historical_data = historical_data[['Open', 'High', 'Low', 'Close', 'Volume']]
+    historical_data.rename(columns={'Date': 'timestamp'}, inplace=True)
     end_time = time.perf_counter()
     print(f"Processed the api request in: {end_time-start_time}")
-    return api_response.json()
+    return historical_data
 
 
-def update_stocks_from_json(json):
+def update_stocks_from_dataframe(symbol, dataframe):
     start_time = time.perf_counter()
-    stocks_list = []
-    symbol = json['Meta Data']['2. Symbol']
-    timestamps = [timestamp for timestamp in json['Time Series (60min)'].keys()]
-    for timestamp in timestamps:
-        new_stock = StockData(
-            symbol=symbol,
-            timestamp=timestamp,
-            open=json['Time Series (60min)'][timestamp]['1. open'],
-            high=json['Time Series (60min)'][timestamp]['2. high'],
-            low=json['Time Series (60min)'][timestamp]['3. low'],
-            close=json['Time Series (60min)'][timestamp]['4. close'],
-            volume=json['Time Series (60min)'][timestamp]['5. volume'],
-        )
-        stocks_list.append(new_stock)
+    data_to_insert = [(symbol, index) + tuple(row) for index, row in dataframe.iterrows()]
     with psycopg2.connect(**DB_CREDENTIALS) as connection:
-        StockActions(connection=connection).create(stocks_list)
+        cursor = connection.cursor()
+        # Insert data into the table
+        insert_query = f'''
+            INSERT INTO stocks (symbol, timestamp, open, high, low, close, volume)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        '''
+        cursor.executemany(insert_query, data_to_insert)
     end_time = time.perf_counter()
     print(f"Updated the database for {symbol} in: {end_time-start_time}")
 
 
 if __name__ == '__main__':
-    months_list = [f"{year:04d}-{month:02d}" for year in range(2020, 2024) for month in range(1, 13)]
     symbols_list = ["MSFT","AAPL", "AMZN","GOOGL", "META", "TSLA", "BRK-B", "JPM", "V", "JNJ"]
     symbol_count = 0
     for symbol in symbols_list:
         symbol_count += 1
         count = 0
-        for month in months_list:
-            json = get_json_from_api(month=month, symbol=symbol)
-            update_stocks_from_json(json)
-            count += 1
-            print(f"Done with {symbol}:{month}")
-            print(f"Months remaining: {len(months_list) - count}, stocks remaining: {len(symbols_list) - symbol_count}")
-
-# symbols done: [MSFT,"AAPL", "AMZN","GOOGL", "META", "TSLA", "BRK-B", "JPM",]
-# symbols with problems: []
+        dataframe = get_dataframe_from_api(symbol)
+        update_stocks_from_dataframe(symbol=symbol, dataframe=dataframe)
+        count += 1
+        print(f"Done with {symbol}")
+        print(f"Stocks remaining: {len(symbols_list) - symbol_count}")
