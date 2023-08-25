@@ -1,3 +1,4 @@
 # created by virtualenv automatically
 venv
 db_credentials.py
+__pycache__

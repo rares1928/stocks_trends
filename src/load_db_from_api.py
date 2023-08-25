@@ -2,21 +2,22 @@ import psycopg2
 import time
 import yfinance
 
-from db_models.db_credentials import DB_CREDENTIALS
+from src.db_models.db_credentials import DB_CREDENTIALS
 
 
-def get_dataframe_from_api(symbol: str):
+def get_stock_data_from_api(symbol: str):
     start_time = time.perf_counter()
-    historical_data = yfinance.Ticker(symbol).history(period='5y')
+    ticker = yfinance.Ticker(symbol)
+    historical_data = ticker.history(period='5y')
     # Filter and reorder columns
     historical_data = historical_data[['Open', 'High', 'Low', 'Close', 'Volume']]
     historical_data.rename(columns={'Date': 'timestamp'}, inplace=True)
     end_time = time.perf_counter()
     print(f"Processed the api request in: {end_time-start_time}")
-    return historical_data
+    return {'historical_data': historical_data, 'market_cap': ticker.info['marketCap'] if ticker.info['marketCap'] else 0,  'symbol': symbol}
 
 
-def update_stocks_from_dataframe(symbol, dataframe):
+def update_stocks_from_data_dict(dict):
     start_time = time.perf_counter()
     data_to_insert = [(symbol, index) + tuple(row) for index, row in dataframe.iterrows()]
     with psycopg2.connect(**DB_CREDENTIALS) as connection:
@@ -37,8 +38,8 @@ if __name__ == '__main__':
     for symbol in symbols_list:
         symbol_count += 1
         count = 0
-        dataframe = get_dataframe_from_api(symbol)
-        # update_stocks_from_dataframe(symbol=symbol, dataframe=dataframe)
+        dict = get_stock_data_from_api(symbol)
+        # update_stocks_from_data_dict(dict)
         count += 1
         print(f"Done with {symbol}")
         print(f"Stocks remaining: {len(symbols_list) - symbol_count}")
