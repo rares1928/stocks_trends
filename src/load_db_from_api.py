@@ -2,7 +2,7 @@ import psycopg2
 import time
 import yfinance
 
-from db_credentials import DB_CREDENTIALS
+from db_models.db_credentials import DB_CREDENTIALS
 
 
 def get_dataframe_from_api(symbol: str):

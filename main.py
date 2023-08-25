@@ -2,7 +2,7 @@ from datetime import datetime
 import psycopg2
 import requests
 
-from db_credentials import DB_CREDENTIALS
+from src.db_models.db_credentials import DB_CREDENTIALS
 from src.db_models.stocks import StockData, StockActions
 
 
