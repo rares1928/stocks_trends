@@ -38,7 +38,7 @@ if __name__ == '__main__':
         symbol_count += 1
         count = 0
         dataframe = get_dataframe_from_api(symbol)
-        update_stocks_from_dataframe(symbol=symbol, dataframe=dataframe)
+        # update_stocks_from_dataframe(symbol=symbol, dataframe=dataframe)
         count += 1
         print(f"Done with {symbol}")
         print(f"Stocks remaining: {len(symbols_list) - symbol_count}")
