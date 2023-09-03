@@ -1,5 +1,6 @@
 import yfinance
 import time
+import pandas as pd
 
 from src.load_db_from_api import get_stock_data_from_api
 
