@@ -27,6 +27,22 @@ class TickerActions:
     def __init__(self, connection):
         self.connection = connection
 
+    def get_all(self):
+        try:
+            cursor = self.connection.cursor()
+            # Execute a SELECT query to retrieve all tickers from the 'tickers' table
+            cursor.execute("SELECT * FROM tickers")
+            # Fetch all the rows and create Ticker objects
+            tickers = []
+            for row in cursor.fetchall():
+                id, stock_ticker, market_cap, last_modified = row
+                tickers.append(Ticker(id=id, stock_ticker=stock_ticker, market_cap=market_cap, last_modified=last_modified))
+            return tickers
+        except Exception as e:
+            # Handle exceptions appropriately (e.g., logging, error handling)
+            print(f"Error: {e}")
+            return []
+
     def create(self, tickers):
         try:
             cursor = self.connection.cursor()
@@ -73,6 +89,8 @@ class TickerActions:
             print("Ticker records updated successfully.")
         except (Exception, psycopg2.Error) as error:
             print("Error updating Ticker records:", error)
+
+
 
 # # How to use the above functions:
 # ticker_actions = TickerActions(psycopg2.connect(**DB_CREDENTIALS))
