@@ -46,8 +46,12 @@ if __name__ == '__main__':
     stocks_count = len(symbol_list)
     count = 0
     for symbol in symbol_list:
-        stock_dict = get_stock_data_from_api(symbol)
-        update_stocks_from_data_dict(stock_dict)
-        count += 1
-        print(f"Done with {symbol}. Updated {count} stocks")
-        print(f"Stocks remaining: {stocks_count - count}")
+        try:
+            stock_dict = get_stock_data_from_api(symbol)
+            update_stocks_from_data_dict(stock_dict)
+            count += 1
+            print(f"Done with {symbol}. Updated {count} stocks")
+            print(f"Stocks remaining: {stocks_count - count}")
+        except:
+            print(f"Could not fetch or insert data for {symbol}")
+            continue
