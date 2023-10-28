@@ -15,8 +15,7 @@ def get_stock_data_from_api(symbol: str):
     historical_data.rename(columns={'Date': 'timestamp'}, inplace=True)
     end_time = time.perf_counter()
     print(f"Processed the api request in: {end_time - start_time}")
-    return {'historical_data': historical_data,
-            'market_cap': ticker.info['marketCap'] if ticker.info['marketCap'] else 0, 'symbol': symbol}
+    return {'historical_data': historical_data, 'symbol': symbol}
 
 
 def update_stocks_from_data_dict(dict):
